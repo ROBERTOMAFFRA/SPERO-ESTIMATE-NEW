@@ -5,13 +5,20 @@ from datetime import datetime
 import os
 
 # Pega o link do banco do Render automaticamente
-DATABASE_URL = os.getenv("DATABASE_URL")
+import os
+from sqlalchemy import create_engine, Column, Integer, String, Float, ForeignKey, DateTime
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import relationship, sessionmaker
+from datetime import datetime
 
-# Ajuste necessário para Render (caso venha com postgres://)
+# --- Conexão automática com banco do Render ---
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# Corrige o prefixo para compatibilidade com SQLAlchemy
 if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+# ------------------------------------------------
 
-engine = create_engine(DATABASE_URL)
 Base = declarative_base()
 SessionLocal = sessionmaker(bind=engine)
 
