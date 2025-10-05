@@ -1,1 +1,6 @@
-Flask==2.2.5\npandas==2.2.2\nopenpyxl==3.1.5\nreportlab==4.2.2\ngunicorn==20.1.0\n
+Flask==2.3.2
+Werkzeug==2.3.6
+gunicorn==21.2.0
+openpyxl==3.1.2
+pandas==2.1.1
+reportlab==3.6.13
