@@ -5,6 +5,14 @@ from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
 from reportlab.lib.units import mm
 
+# --- PostgreSQL via SQLAlchemy ---
+from models import init_db
+
+# Inicializa o banco de dados no início da aplicação
+init_db()
+# ---------------------------------
+
+
 APP_DIR = os.path.dirname(__file__)
 DB_PATH = os.path.join(APP_DIR, "data", "app.db")
 REPORTS_FOLDER = os.path.join(APP_DIR, "reports")
@@ -14,25 +22,7 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY","change-me-please")
 app.config['UPLOAD_FOLDER'] = os.path.join(APP_DIR, "data")
 
-ADMIN_USER = "admin@spero.com"
-ADMIN_PASS = "test123"
 
-def init_db():
-    conn = sqlite3.connect(DB_PATH)
-    c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY, username TEXT UNIQUE, password TEXT, role TEXT)''')
-    c.execute('''CREATE TABLE IF NOT EXISTS estimates (id INTEGER PRIMARY KEY, client TEXT, description TEXT, unit TEXT, qty REAL, unit_price REAL, total REAL, created_at TEXT)''')
-    conn.commit(); conn.close()
-
-def ensure_admin():
-    conn = sqlite3.connect(DB_PATH); c = conn.cursor()
-    c.execute("SELECT id FROM users WHERE username=?", (ADMIN_USER,))
-    if not c.fetchone():
-        c.execute("INSERT INTO users (username,password,role) VALUES (?,?,?)", (ADMIN_USER, ADMIN_PASS, "Admin"))
-        conn.commit()
-    conn.close()
-
-init_db(); ensure_admin()
 
 def get_db_conn():
     conn = sqlite3.connect(DB_PATH)
