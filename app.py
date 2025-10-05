@@ -136,6 +136,17 @@ def manage_users():
     rows = conn.execute("SELECT username,role FROM users").fetchall(); conn.close()
     return render_template('manage_users.html', users=rows)
 
+@app.route('/test-db')
+def test_db():
+    from models import SessionLocal, User
+    try:
+        db = SessionLocal()
+        count = db.query(User).count()
+        db.close()
+        return f"✅ Conexão bem-sucedida! Total de usuários: {count}"
+    except Exception as e:
+        return f"❌ Erro ao conectar ao banco: {e}"
+
 if __name__=='__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
 migrate from sqlite to postgresql
