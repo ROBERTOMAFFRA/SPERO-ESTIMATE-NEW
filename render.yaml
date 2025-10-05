@@ -1,4 +1,3 @@
-
 services:
   - type: web
     name: spero-estimate
@@ -6,5 +5,3 @@ services:
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
     plan: free
-    domains:
-      - speroestimate.com

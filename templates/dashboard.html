@@ -1,70 +1,22 @@
-
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spero Estimate Dashboard</title>
-    <style>
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            background-color: #f4f7fa;
-            color: #002B45;
-            text-align: center;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh;
-        }
-        header {
-            background-color: #002B45;
-            color: white;
-            padding: 20px;
-            box-shadow: 0px 3px 10px rgba(0,0,0,0.2);
-        }
-        img {
-            width: 120px;
-            vertical-align: middle;
-        }
-        h1 {
-            margin-top: 40px;
-        }
-        .logout-btn {
-            display: inline-block;
-            margin-top: 25px;
-            background-color: #FF6600;
-            color: white;
-            padding: 10px 25px;
-            border-radius: 8px;
-            text-decoration: none;
-            font-weight: bold;
-            transition: background-color 0.3s ease;
-        }
-        .logout-btn:hover {
-            background-color: #e65c00;
-        }
-        footer {
-            margin-top: auto;
-            background-color: #002B45;
-            color: white;
-            padding: 12px;
-            font-size: 14px;
-            box-shadow: 0px -2px 8px rgba(0,0,0,0.2);
-        }
-    </style>
-</head>
-<body>
-    <header>
-        <img src="{{ url_for('static', filename='images/Logo Spero.png') }}" alt="Spero Logo">
-    </header>
-
-    <h1>Welcome to Spero Estimate, Admin!</h1>
-    <p>This is your main dashboard.</p>
-    <a href="/logout" class="logout-btn">Logout</a>
-
-    <footer>
-        © 2025 Spero Restoration Corp. | All Rights Reserved
-    </footer>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+<div class="row">
+  <div class="col-side">
+    <ul class="menu">
+      <li><a href="{{ url_for('dashboard') }}">Dashboard</a></li>
+      <li><a href="{{ url_for('new_estimate') }}">New Estimate</a></li>
+      <li><a href="{{ url_for('settings') }}">Settings</a></li>
+      <li><a href="{{ url_for('manage_users') }}">Manage Users</a></li>
+      <li><a href="{{ url_for('logout') }}">Logout</a></li>
+    </ul>
+  </div>
+  <div class="col-main">
+    <h2>Estimates</h2>
+    <table class="table">
+      <thead><tr><th>ID</th><th>Client</th><th>Description</th><th>Unit</th><th>Qty</th><th>Total</th><th>Actions</th></tr></thead>
+      <tbody>{% for e in estimates %}<tr><td>{{ e.id }}</td><td>{{ e.client }}</td><td>{{ e.description }}</td><td>{{ e.unit }}</td><td>{{ e.qty }}</td><td>{{ e.total }}</td><td><a class="btn-sm" href="{{ url_for('estimate_pdf', eid=e.id) }}">PDF</a>{% if session.get('role')=='Admin' %}<form method="post" action="{{ url_for('delete_estimate', eid=e.id) }}" style="display:inline"><button class="btn-sm danger" type="submit">Delete</button></form>{% endif %}</td></tr>{% endfor %}</tbody>
+    </table>
+    <h4>Grand Total: {{ total_sum }}</h4>
+  </div>
+</div>
+{% endblock %}

@@ -1,69 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Spero Estimate - Login</title>
-    <style>
-        body {
-            font-family: "Segoe UI", Arial, sans-serif;
-            background: linear-gradient(135deg, #002B45, #005F99);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            color: white;
-        }
-        .login-container {
-            background-color: white;
-            color: #002B45;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0px 4px 15px rgba(0,0,0,0.3);
-            text-align: center;
-            width: 320px;
-        }
-        img {
-            width: 140px;
-            margin-bottom: 20px;
-        }
-        input[type="text"], input[type="password"] {
-            width: 85%;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 8px;
-            border: 1px solid #ccc;
-            font-size: 15px;
-        }
-        input[type="submit"] {
-            background-color: #FF6600;
-            color: white;
-            border: none;
-            padding: 10px 25px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 15px;
-            transition: background-color 0.3s ease;
-        }
-        input[type="submit"]:hover {
-            background-color: #e65c00;
-        }
-        h2 {
-            margin-bottom: 15px;
-        }
-    </style>
-</head>
-<body>
-    <div class="login-container">
-        <img src="{{ url_for('static', filename='images/Logo Spero.png') }}" alt="Spero Logo">
-        <h2>Login</h2>
-        <form action="/login" method="post">
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="password" placeholder="Password" required><br>
-            <input type="submit" value="Login">
-        </form>
-    </div>
-</body>
-</html>
+{% extends 'base.html' %}
+{% block content %}
+<div class="login-box">
+  <img src="{{ url_for('static', filename='images/Logo Spero.png') }}" alt="Logo" class="logo">
+  <h3>Login</h3>
+  <form method="post">
+    <input name="username" placeholder="Username" class="form-control" required>
+    <input name="password" placeholder="Password" type="password" class="form-control" required>
+    <button class="btn" type="submit">Sign In</button>
+  </form>
+</div>
+{% endblock %}

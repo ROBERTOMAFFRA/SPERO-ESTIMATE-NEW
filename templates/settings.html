@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Settings (Admin)</h3>
+<form method="post" enctype="multipart/form-data">
+  <label>Upload new estimate.xlsx</label><input type="file" name="file" class="form-control">
+  <button class="btn" type="submit">Upload</button>
+</form>
+{% if info.size %}<p>Current file size: {{ info.size }} bytes</p>{% endif %}
+{% endblock %}

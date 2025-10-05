@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block content %}
+<h3>Manage Users</h3>
+<form method="post">
+  <input type="hidden" name="action" value="add">
+  <div><input name="username" placeholder="username" class="form-control"></div>
+  <div><input name="password" placeholder="password" class="form-control"></div>
+  <div><select name="role" class="form-control"><option>Manager</option><option>Viewer</option></select></div>
+  <button class="btn" type="submit">Add</button>
+</form>
+<hr>
+<form method="post">
+  <input type="hidden" name="action" value="delete">
+  <input name="del_username" placeholder="username to delete" class="form-control">
+  <button class="btn danger" type="submit">Delete</button>
+</form>
+<h4>Existing Users</h4>
+<ul>{% for u in users %}<li>{{ u.username }} - {{ u.role }}</li>{% endfor %}</ul>
+{% endblock %}

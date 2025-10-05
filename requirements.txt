@@ -1,5 +1,1 @@
-flask
-pandas
-openpyxl
-reportlab
-gunicorn
+Flask==2.2.5\npandas==2.2.2\nopenpyxl==3.1.5\nreportlab==4.2.2\ngunicorn==20.1.0\n
