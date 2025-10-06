@@ -147,6 +147,22 @@ def test_db():
     except Exception as e:
         return f"❌ Erro ao conectar ao banco: {e}"
 
+# --- Cria tabelas automaticamente ao iniciar ---
+from models import Base, engine, SessionLocal, User
+Base.metadata.create_all(bind=engine)
+
+# --- Cria usuário admin padrão se não existir ---
+try:
+    db = SessionLocal()
+    if not db.query(User).filter_by(username='admin').first():
+        user = User(username='admin', password='admin', role='admin')
+        db.add(user)
+        db.commit()
+        print("✅ Usuário admin criado (login: admin / senha: admin)")
+    db.close()
+except Exception as e:
+    print(f"⚠️ Erro ao inicializar banco: {e}")
+
 if __name__=='__main__':
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
 
