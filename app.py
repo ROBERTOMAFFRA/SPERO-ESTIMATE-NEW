@@ -1,210 +1,82 @@
-from flask import Flask, render_template, request, redirect, url_for, flash, session, send_from_directory
-import os, sqlite3, datetime
-from werkzeug.utils import secure_filename
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import mm
-
-# --- PostgreSQL via SQLAlchemy ---
-from models import init_db
-
-# Inicializa o banco de dados no início da aplicação
-init_db()
-# ---------------------------------
-
-APP_DIR = os.path.dirname(__file__)
-DB_PATH = os.path.join(APP_DIR, "data", "app.db")
-REPORTS_FOLDER = os.path.join(APP_DIR, "reports")
-os.makedirs(REPORTS_FOLDER, exist_ok=True)
+import os
+from flask import Flask, render_template, request, redirect, session
+from models import SessionLocal, User, Estimate, Base, engine
+from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "change-me-please")
-app.config['UPLOAD_FOLDER'] = os.path.join(APP_DIR, "data")
+app.secret_key = os.environ.get('SECRET_KEY', 'spero_secret_key')
 
+# 🧠 Criar tabelas automaticamente ao iniciar
+Base.metadata.create_all(bind=engine)
 
-def get_db_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+# 🧩 Rota inicial
+@app.route('/')
+def home():
+    if 'user' in session:
+        return redirect('/dashboard')
+    return redirect('/login')
 
-
-def login_required(f):
-    from functools import wraps
-    @wraps(f)
-    def inner(*args, **kwargs):
-        if 'user' not in session:
-            return redirect(url_for('login'))
-        return f(*args, **kwargs)
-    return inner
-
-
-def admin_required(f):
-    from functools import wraps
-    @wraps(f)
-    def inner(*args, **kwargs):
-        if 'user' not in session:
-            return redirect(url_for('login'))
-        conn = get_db_conn()
-        row = conn.execute("SELECT role FROM users WHERE username=?", (session['user'],)).fetchone()
-        conn.close()
-        if not row or row['role'] != 'Admin':
-            flash('Admin required', 'danger')
-            return redirect(url_for('dashboard'))
-        return f(*args, **kwargs)
-    return inner
-
-
+# 🔐 Login
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        u = request.form.get('username', '').strip()
-        p = request.form.get('password', '').strip()
-        conn = get_db_conn()
-        row = conn.execute("SELECT * FROM users WHERE username=? AND password=?", (u, p)).fetchone()
-        conn.close()
-        if row:
-            session['user'] = u
-            session['role'] = row['role']
-            return redirect(url_for('dashboard'))
-        flash('Invalid credentials', 'danger')
+        u = request.form['username']
+        p = request.form['password']
+
+        db = SessionLocal()
+        user = db.query(User).filter_by(username=u, password=p).first()
+        db.close()
+
+        if user:
+            session['user'] = user.username
+            session['role'] = user.role
+            return redirect('/dashboard')
+        else:
+            return render_template('login.html', error='Usuário ou senha incorretos.')
     return render_template('login.html')
 
-
+# 🚪 Logout
 @app.route('/logout')
 def logout():
     session.clear()
-    return redirect(url_for('login'))
+    return redirect('/login')
 
-
-@app.route('/')
-@login_required
+# 🏠 Dashboard
+@app.route('/dashboard')
 def dashboard():
-    conn = get_db_conn()
-    rows = conn.execute("SELECT * FROM estimates ORDER BY id DESC").fetchall()
-    conn.close()
-    total = sum([r['total'] for r in rows]) if rows else 0
-    return render_template('dashboard.html', estimates=rows, total_sum=total, user=session.get('user'))
+    if 'user' not in session:
+        return redirect('/login')
 
+    db = SessionLocal()
+    estimates = db.query(Estimate).all()
+    db.close()
+    return render_template('dashboard.html', user=session['user'], estimates=estimates)
 
-@app.route('/estimate/new', methods=['GET', 'POST'])
-@login_required
-def new_estimate():
+# ➕ Criar novo orçamento
+@app.route('/add_estimate', methods=['GET', 'POST'])
+def add_estimate():
+    if 'user' not in session:
+        return redirect('/login')
+
     if request.method == 'POST':
-        client = request.form.get('client', '')
-        description = request.form.get('description', '')
-        unit = request.form.get('unit', '')
-        try:
-            qty = float(request.form.get('qty') or 0)
-            unit_price = float(request.form.get('unit_price') or 0)
-        except:
-            qty = 0
-            unit_price = 0
-        total = qty * unit_price
-        conn = get_db_conn()
-        conn.execute("INSERT INTO estimates (client, description, unit, qty, unit_price, total, created_at) VALUES (?,?,?,?,?,?,?)",
-                     (client, description, unit, qty, unit_price, total, datetime.datetime.now().isoformat()))
-        conn.commit()
-        conn.close()
-        flash('Estimate saved', 'success')
-        return redirect(url_for('dashboard'))
-    return render_template('estimate_form.html')
+        name = request.form['name']
+        description = request.form['description']
+        category = request.form['category']
+        price = float(request.form['price'])
 
+        db = SessionLocal()
+        new_estimate = Estimate(name=name, description=description, category=category, price=price)
+        db.add(new_estimate)
+        db.commit()
+        db.close()
 
-@app.route('/estimate/<int:eid>/pdf')
-@login_required
-def estimate_pdf(eid):
-    conn = get_db_conn()
-    row = conn.execute("SELECT * FROM estimates WHERE id=?", (eid,)).fetchone()
-    conn.close()
-    if not row:
-        flash('Not found', 'danger')
-        return redirect(url_for('dashboard'))
-    filename = f"estimate_{eid}.pdf"
-    path = os.path.join(REPORTS_FOLDER, filename)
-    c = canvas.Canvas(path, pagesize=A4)
-    width, height = A4
-    margin = 20 * mm
-    y = height - margin
-    try:
-        c.drawImage(os.path.join('static', 'images', 'Logo Spero.png'), margin, y - 40, width=120, preserveAspectRatio=True, mask='auto')
-    except:
-        pass
-    y -= 60
-    c.setFont('Helvetica-Bold', 14)
-    c.drawString(margin, y, 'Estimate')
-    y -= 20
-    c.setFont('Helvetica', 10)
-    c.drawString(margin, y, f"Client: {row['client']}")
-    y -= 14
-    c.drawString(margin, y, f"Description: {row['description']}")
-    y -= 14
-    c.drawString(margin, y, f"Unit: {row['unit']}   Qty: {row['qty']}   Unit Price: {row['unit_price']}   Total: {row['total']}")
-    y -= 14
-    c.save()
-    return send_from_directory(REPORTS_FOLDER, filename, as_attachment=True)
+        return redirect('/dashboard')
 
+    return render_template('add_estimate.html')
 
-@app.route('/estimate/<int:eid>/delete', methods=['POST'])
-@admin_required
-def delete_estimate(eid):
-    conn = get_db_conn()
-    conn.execute("DELETE FROM estimates WHERE id=?", (eid,))
-    conn.commit()
-    conn.close()
-    flash('Deleted', 'success')
-    return redirect(url_for('dashboard'))
-
-
-@app.route('/settings', methods=['GET', 'POST'])
-@admin_required
-def settings():
-    info = {}
-    if request.method == 'POST':
-        f = request.files.get('file')
-        if f and f.filename.lower().endswith('.xlsx'):
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'], 'estimate.xlsx'))
-            flash('✅ New price list uploaded successfully!', 'success')
-            return redirect(url_for('settings'))
-        else:
-            flash('Please upload a .xlsx file', 'danger')
-    p = os.path.join(app.config['UPLOAD_FOLDER'], 'estimate.xlsx')
-    if os.path.exists(p):
-        info['size'] = os.path.getsize(p)
-    return render_template('settings.html', info=info)
-
-
-@app.route('/manage-users', methods=['GET', 'POST'])
-@admin_required
-def manage_users():
-    conn = get_db_conn()
-    if request.method == 'POST':
-        action = request.form.get('action')
-        if action == 'add':
-            u = request.form.get('username').strip()
-            p = request.form.get('password').strip()
-            r = request.form.get('role', 'Viewer')
-            try:
-                conn.execute("INSERT INTO users (username, password, role) VALUES (?,?,?)", (u, p, r))
-                conn.commit()
-                flash('User added', 'success')
-            except:
-                flash('Error adding user', 'danger')
-        elif action == 'delete':
-            u = request.form.get('del_username').strip()
-            if u == 'admin':
-                flash('Cannot delete admin', 'danger')
-            else:
-                conn.execute("DELETE FROM users WHERE username=?", (u,))
-                conn.commit()
-                flash('Deleted', 'success')
-    rows = conn.execute("SELECT username, role FROM users").fetchall()
-    conn.close()
-    return render_template('manage_users.html', users=rows)
-
-
+# 🔍 Testar conexão com o banco
 @app.route('/test-db')
 def test_db():
-    from models import SessionLocal, User
     try:
         db = SessionLocal()
         count = db.query(User).count()
@@ -213,51 +85,12 @@ def test_db():
     except Exception as e:
         return f"Erro ao conectar ao banco: {e}"
 
+# 🚀 Executar localmente
 if __name__ == '__main__':
-    import os
-    import sqlite3
-    from models import Base, engine, SessionLocal, User
-
-    # 🔹 Garante que o arquivo do banco exista (para SQLite)
-    if not os.path.exists('database.db'):
-        print("📁 Criando novo banco de dados SQLite...")
-
-        conn = sqlite3.connect('database.db')
-        cursor = conn.cursor()
-
-        # Cria tabelas básicas se não existirem
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT NOT NULL UNIQUE,
-                password TEXT NOT NULL,
-                role TEXT DEFAULT 'user'
-            )
-        ''')
-
-        cursor.execute('''
-            CREATE TABLE IF NOT EXISTS estimates (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                client TEXT,
-                description TEXT,
-                unit TEXT,
-                unit_price REAL,
-                total REAL,
-                date TEXT
-            )
-        ''')
-
-        conn.commit()
-        conn.close()
-
-        print("✅ Banco de dados inicializado com sucesso!")
-
-    # 🔹 Agora usa SQLAlchemy para criar as tabelas (caso estejam mapeadas no models.py)
     try:
-        Base.metadata.create_all(bind=engine)
         db = SessionLocal()
 
-        # Cria usuário admin padrão se não existir
+        # cria usuário admin padrão se não existir
         if not db.query(User).filter_by(username='admin').first():
             admin_user = User(username='admin', password='admin', role='admin')
             db.add(admin_user)
@@ -268,7 +101,4 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"⚠️ Erro ao inicializar banco: {e}")
 
-    # 🔹 Inicia o servidor Flask
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
-
-
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 10000)), debug=True)
