@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+  <h2>New Estimate</h2>
+  <form method="post">
+    <label>Client</label><input name="client">
+    <label>Description</label><input name="description">
+    <label>Unit</label><input name="unit">
+    <label>Qty</label><input name="qty" type="number" step="any">
+    <label>Unit Price</label><input name="unit_price" type="number" step="any">
+    <button type="submit">Save</button>
+  </form>
+{% endblock %}

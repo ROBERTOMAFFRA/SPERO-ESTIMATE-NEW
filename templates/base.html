@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Spero Estimate</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <img src="{{ url_for('static', filename='images/Logo Spero.png') }}" class="logo" alt="Logo">
+        <h1>Spero Estimate</h1>
+        {% if session.get('user') %}
+        <div class="nav">
+          <span>Logged as {{ session.get('user') }}</span> | <a href="{{ url_for('dashboard') }}">Estimates</a> | <a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+        {% endif %}
+      </header>
+      <main>
+        {% block content %}{% endblock %}
+      </main>
+      <footer>
+        <small>© Spero Estimate</small>
+      </footer>
+    </div>
+  </body>
+</html>
