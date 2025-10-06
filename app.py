@@ -136,12 +136,6 @@ def manage_users():
     rows = conn.execute("SELECT username,role FROM users").fetchall(); conn.close()
     return render_template('manage_users.html', users=rows)
 
-@app.route('/test-db')
-def test_db():
-    from models import SessionLocal, User
-    try:
-        db = SessionLocal()
-        count = db.query(User).count()
 
 @app.route('/test-db')
 def test_db():
@@ -153,6 +147,7 @@ def test_db():
         return f"Conexão bem-sucedida! Total de usuários: {count}"
     except Exception as e:
         return f"Erro ao conectar ao banco: {e}"
+
 
 if __name__ == '__main__':
     from models import Base, engine, SessionLocal, User
