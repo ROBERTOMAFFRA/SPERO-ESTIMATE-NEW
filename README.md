@@ -1,1 +1,0 @@
-# Spero Estimate\nLogin: admin@spero.com / test123\nDeploy on Render: upload ZIP or push to GitHub.\nContact: sperorestor@outlook.com\n
