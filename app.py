@@ -213,14 +213,51 @@ def test_db():
     except Exception as e:
         return f"Erro ao conectar ao banco: {e}"
 
-
 if __name__ == '__main__':
+    import os
+    import sqlite3
     from models import Base, engine, SessionLocal, User
+
+    # 🔹 Garante que o arquivo do banco exista (para SQLite)
+    if not os.path.exists('database.db'):
+        print("📁 Criando novo banco de dados SQLite...")
+
+        conn = sqlite3.connect('database.db')
+        cursor = conn.cursor()
+
+        # Cria tabelas básicas se não existirem
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL UNIQUE,
+                password TEXT NOT NULL,
+                role TEXT DEFAULT 'user'
+            )
+        ''')
+
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS estimates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                client TEXT,
+                description TEXT,
+                unit TEXT,
+                unit_price REAL,
+                total REAL,
+                date TEXT
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+        print("✅ Banco de dados inicializado com sucesso!")
+
+    # 🔹 Agora usa SQLAlchemy para criar as tabelas (caso estejam mapeadas no models.py)
     try:
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
 
-        # cria usuário admin padrão se não existir
+        # Cria usuário admin padrão se não existir
         if not db.query(User).filter_by(username='admin').first():
             admin_user = User(username='admin', password='admin', role='admin')
             db.add(admin_user)
@@ -231,5 +268,7 @@ if __name__ == '__main__':
     except Exception as e:
         print(f"⚠️ Erro ao inicializar banco: {e}")
 
+    # 🔹 Inicia o servidor Flask
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
+
 
