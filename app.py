@@ -106,6 +106,25 @@ def estimate_pdf(eid):
 def delete_estimate(eid):
     conn = get_db_conn(); conn.execute("DELETE FROM estimates WHERE id=?", (eid,)); conn.commit(); conn.close(); flash('Deleted','success'); return redirect(url_for('dashboard'))
 
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '').strip()
+
+        conn = get_db_conn()
+        user = conn.execute('SELECT * FROM users WHERE username=? AND password=?', (username, password)).fetchone()
+        conn.close()
+
+        if user:
+            session['user'] = user['username']
+            session['role'] = user['role']
+            return redirect(url_for('index'))  # ou 'dashboard' se existir
+        else:
+            flash('Invalid username or password', 'danger')
+
+    return render_template('login.html')
+
 @app.route('/settings', methods=['GET','POST'])
 @admin_required
 def settings():
