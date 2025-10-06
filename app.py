@@ -125,19 +125,6 @@ def login():
 
     return render_template('login.html')
 
-@app.route('/settings', methods=['GET','POST'])
-@admin_required
-def settings():
-    info = {}
-    if request.method=='POST':
-        f = request.files.get('file')
-        if f and f.filename.lower().endswith('.xlsx'):
-            f.save(os.path.join(app.config['UPLOAD_FOLDER'],'estimate.xlsx')); flash('✅ New price list uploaded successfully!','success'); return redirect(url_for('settings'))
-        else: flash('Please upload a .xlsx file','danger')
-    p = os.path.join(app.config['UPLOAD_FOLDER'],'estimate.xlsx')
-    if os.path.exists(p): info['size'] = os.path.getsize(p)
-    return render_template('settings.html', info=info)
-
 @app.route('/manage-users', methods=['GET','POST'])
 @admin_required
 def manage_users():
@@ -154,7 +141,6 @@ def manage_users():
             else: conn.execute("DELETE FROM users WHERE username=?", (u,)); conn.commit(); flash('Deleted','success')
     rows = conn.execute("SELECT username,role FROM users").fetchall(); conn.close()
     return render_template('manage_users.html', users=rows)
-
 
 @app.route('/test-db')
 def test_db():
