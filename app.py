@@ -142,27 +142,33 @@ def test_db():
     try:
         db = SessionLocal()
         count = db.query(User).count()
+
+@app.route('/test-db')
+def test_db():
+    from models import SessionLocal, User
+    try:
+        db = SessionLocal()
+        count = db.query(User).count()
         db.close()
-        return f"✅ Conexão bem-sucedida! Total de usuários: {count}"
+        return f"Conexão bem-sucedida! Total de usuários: {count}"
     except Exception as e:
-        return f"❌ Erro ao conectar ao banco: {e}"
+        return f"Erro ao conectar ao banco: {e}"
 
-# --- Cria tabelas automaticamente ao iniciar ---
-from models import Base, engine, SessionLocal, User
-Base.metadata.create_all(bind=engine)
+if __name__ == '__main__':
+    from models import Base, engine, SessionLocal, User
+    try:
+        Base.metadata.create_all(bind=engine)
+        db = SessionLocal()
 
-# --- Cria usuário admin padrão se não existir ---
-try:
-    db = SessionLocal()
-    if not db.query(User).filter_by(username='admin').first():
-        user = User(username='admin', password='admin', role='admin')
-        db.add(user)
-        db.commit()
-        print("✅ Usuário admin criado (login: admin / senha: admin)")
-    db.close()
-except Exception as e:
-    print(f"⚠️ Erro ao inicializar banco: {e}")
+        # cria usuário admin padrão se não existir
+        if not db.query(User).filter_by(username='admin').first():
+            admin_user = User(username='admin', password='admin', role='admin')
+            db.add(admin_user)
+            db.commit()
+            print("✅ Usuário admin criado (login: admin / senha: admin)")
 
-if __name__=='__main__':
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT',5000)), debug=True)
+        db.close()
+    except Exception as e:
+        print(f"⚠️ Erro ao inicializar banco: {e}")
 
+    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 5000)), debug=True)
